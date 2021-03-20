@@ -17,10 +17,10 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: build app
+      - name: build
         run: |
           ./gradlew bootJar
-      - name: upload apk
+      - name: upload jar
         uses: actions/upload-artifact@v2
         with:
           name: spring-web
