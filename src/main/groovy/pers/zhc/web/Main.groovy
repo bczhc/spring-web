@@ -15,13 +15,4 @@ class Main {
     static void main(String[] args) {
         SpringApplication.run(Main, args)
     }
-
-    @GetMapping("/")
-    String response() {
-        def a = []
-        (0..<10000).forEach {
-            a[it] = Object.newInstance().toString()
-        }
-        return a
-    }
 }
