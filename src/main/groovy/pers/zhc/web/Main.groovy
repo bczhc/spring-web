@@ -13,6 +13,12 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 class Main {
     static void main(String[] args) {
-        SpringApplication.run(Main, args)
+        def sc = new Scanner(System.in)
+        while (true) {
+            def expression = sc.nextLine()
+            def result = Eval.me(expression)
+            println result
+        }
+//        SpringApplication.run(Main, args)
     }
 }

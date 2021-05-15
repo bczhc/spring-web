@@ -16,17 +16,8 @@ class TestController {
     @Autowired
     private HttpServletResponse response
 
-    @RequestMapping("/hello1")
-    def hello1() {
-        def headers = response.getHeader("Content-Type")
-        println headers
-        return [1, 2]
-    }
+    @RequestMapping("/")
+    def hello() {
 
-    @GetMapping("/hello2")
-    def hello2() {
-        def headers = response.getHeader("Content-Type")
-        println headers
-        return ["a": 2]
     }
 }
