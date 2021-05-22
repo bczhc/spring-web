@@ -1,8 +1,6 @@
 package pers.zhc.web.controller
 
-
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
@@ -16,8 +14,18 @@ class TestController {
     @Autowired
     private HttpServletResponse response
 
-    @RequestMapping("/")
+    @RequestMapping("/demo")
     def hello() {
-
+        def is = request.getInputStream()
+        def buf = new byte[1024]
+        def readLen
+        def totalLen = 0
+        while ((readLen = is.read(buf) != -1)) {
+            totalLen += readLen
+        }
+        return [
+                "msg"              : "Hallo du Lama!",
+                "inputStreamLength": totalLen
+        ]
     }
 }
