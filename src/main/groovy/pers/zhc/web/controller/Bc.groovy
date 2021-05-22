@@ -34,8 +34,12 @@ class Bc {
         lines.forEach {
             sb.append(it).append("\n")
         }
+        sb.deleteCharAt(sb.length() - 1)
         def r = sb.toString()
         println r
-        return r
+        return [
+                "status": "SUCCESS",
+                "result": r
+        ]
     }
 }
