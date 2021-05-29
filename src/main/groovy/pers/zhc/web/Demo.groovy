@@ -1,69 +1,47 @@
 package pers.zhc.web
 
+import pers.zhc.tools.jni.JNI
+import sun.security.x509.X509Key
+
 import javax.crypto.Cipher
 import java.security.Key
+import java.security.KeyFactory
 import java.security.KeyPair
 import java.security.KeyPairGenerator
+import java.security.MessageDigest
+import java.security.PublicKey
+import java.security.spec.X509EncodedKeySpec
 
 /**
  * @author bczhc
  */
 class Demo {
     static void main(String[] args) {
-        def keyPair = genKeyPair()
-        def publicKey = keyPair.getPublic()
-        def privateKey = keyPair.getPrivate()
+        // get server's public key and verify
 
-        def c1 = encrypt("hello, world".bytes, publicKey)
-        def c2 = encrypt(c1, privateKey)
+        def url = new URL("http://localhost:8080/public-key")
+        def connection = url.openConnection()
+        def length = connection.getContentLength()
 
+        def lengthBuf = new byte[4]
+        def is = connection.getInputStream()
+        is.read(lengthBuf)
+        def publicKeyLength = JNI.Struct.unpackInt(lengthBuf, 0, JNI.Struct.MODE_BIG_ENDIAN)
+        def publicKeyBuf = new byte[publicKeyLength]
+        is.read(publicKeyBuf)
+        def signatureBuf = new byte[length - 4 - publicKeyLength]
+        is.read(signatureBuf)
+        is.close()
 
-        def p1 = decrypt(c2, publicKey)
-        def p2 = decrypt(p1, privateKey)
-        println new String(p2)
-    }
+        def digest = MessageDigest.getInstance("SHA-256").digest(publicKeyBuf)
 
-    private static KeyPair genKeyPair() {
-        def generator = KeyPairGenerator.getInstance("RSA")
-        generator.initialize(1024)
-        def keyPair = generator.generateKeyPair()
-        return keyPair
-    }
-
-    private static byte[] encrypt(byte[] data, Key key) {
-        return cipher(Cipher.ENCRYPT_MODE, data, key)
-    }
-
-    private static byte[] decrypt(byte[] data, Key key) {
-        return cipher(Cipher.DECRYPT_MODE, data, key)
-    }
-
-    private static byte[] cipher(int mode, byte[] data, Key key) {
-        def r = []
         def cipher = Cipher.getInstance("RSA")
+        def generatePublic = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKeyBuf))
 
-        def lenLimit
-        if (mode == Cipher.ENCRYPT_MODE) {
-            lenLimit = 117
-        } else {
-            lenLimit = 128
+        cipher.init(Cipher.DECRYPT_MODE, generatePublic)
+        def decryptedSignature = cipher.doFinal(signatureBuf)
+        if (Arrays.equals(decryptedSignature, digest)) {
+            println "ok"
         }
-        def left = data.length % lenLimit
-        def t = data.length.intdiv(lenLimit)
-        def i = 0
-        for (; i < t; ++i) {
-            cipher.init(mode, key)
-            r.addAll(cipher.doFinal(data, lenLimit * i, lenLimit))
-        }
-        if (left != 0) {
-            cipher.init(mode, key)
-            r.addAll(cipher.doFinal(data, lenLimit * i, left))
-        }
-
-        def a = new byte[r.size()]
-        for (j in 0..<r.size()) {
-            a[j] = (r[j] as Byte)
-        }
-        return a
     }
 }
