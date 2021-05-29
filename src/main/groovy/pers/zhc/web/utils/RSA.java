@@ -1,22 +1,16 @@
 package pers.zhc.web.utils;
 
-import pers.zhc.web.ApplicationMain;
-
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
-import java.security.InvalidKeyException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 
 /**
  * @author bczhc
  */
 public class RSA {
-    private Cipher pukEncryptCipher;
-    private Cipher pukDecryptCipher;
-    private Cipher prkEncryptCipher;
-    private Cipher prkDecryptCipher;
+    // Singleton
+    private final Cipher[] ciphers = new Cipher[4];
+    private final KeyPair keyPair;
 
     public static KeyPair generateKeyPair() throws NoSuchAlgorithmException {
         final KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
@@ -24,38 +18,52 @@ public class RSA {
         return generator.genKeyPair();
     }
 
-    public RSA() {
-        try {
-            this.pukEncryptCipher = Cipher.getInstance("RSA");
-            this.pukDecryptCipher = Cipher.getInstance("RSA");
-            this.prkEncryptCipher = Cipher.getInstance("RSA");
-            this.prkDecryptCipher = Cipher.getInstance("RSA");
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-            e.printStackTrace();
-        }
-        try {
-            this.pukEncryptCipher.init(Cipher.ENCRYPT_MODE, ApplicationMain.getKeyPair().getPublic());
-            this.pukDecryptCipher.init(Cipher.DECRYPT_MODE, ApplicationMain.getKeyPair().getPublic());
-            this.prkEncryptCipher.init(Cipher.ENCRYPT_MODE, ApplicationMain.getKeyPair().getPrivate());
-            this.prkDecryptCipher.init(Cipher.DECRYPT_MODE, ApplicationMain.getKeyPair().getPrivate());
-        } catch (InvalidKeyException e) {
-            e.printStackTrace();
-        }
+    public RSA(KeyPair keyPair) {
+        this.keyPair = keyPair;
+    }
+
+    public RSA(Key publicKey) {
+        this(new KeyPair((PublicKey) publicKey, null));
     }
 
     public Cipher getPukEncryptCipher() {
-        return pukEncryptCipher;
+        return lazyInitCipher(0, Cipher.ENCRYPT_MODE, keyPair.getPublic());
     }
 
     public Cipher getPukDecryptCipher() {
-        return pukDecryptCipher;
+        return lazyInitCipher(1, Cipher.DECRYPT_MODE, keyPair.getPublic());
+
     }
 
     public Cipher getPrkEncryptCipher() {
-        return prkEncryptCipher;
+        return lazyInitCipher(2, Cipher.ENCRYPT_MODE, keyPair.getPrivate());
     }
 
     public Cipher getPrkDecryptCipher() {
-        return prkDecryptCipher;
+        return lazyInitCipher(3, Cipher.DECRYPT_MODE, keyPair.getPrivate());
+    }
+
+    private Cipher lazyInitCipher(int index, int mode, Key key) {
+        try {
+            if (ciphers[index] == null) {
+                ciphers[index] = Cipher.getInstance("RSA");
+                ciphers[index].init(mode, key);
+            }
+            return ciphers[index];
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public KeyPair getKeyPair() {
+        return keyPair;
+    }
+
+    public PublicKey getPublicKey() {
+        return keyPair.getPublic();
+    }
+
+    public PrivateKey getPrivateKey() {
+        return keyPair.getPrivate();
     }
 }

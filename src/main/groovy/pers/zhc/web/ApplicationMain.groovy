@@ -25,7 +25,7 @@ class ApplicationMain {
     private static init() {
         keyPair = RSA.generateKeyPair()
         sha256 = new SHA256()
-        rsa = new RSA()
+        rsa = new RSA(keyPair)
     }
 
 }
