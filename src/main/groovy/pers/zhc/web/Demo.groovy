@@ -15,7 +15,7 @@ class Demo {
 
         def buf = new byte[length]
         def is = connection.inputStream
-        assert is.read(buf) == length
+        is.read(buf) == length
         is.close()
 
         def serverKeyPair = Communication.resolvePublicKeyResult(buf)
@@ -25,8 +25,19 @@ class Demo {
         def communication = new Communication(myKeyPair)
 
 
-        def inputStream = communication.send(new URL("http://localhost:8080/demo"), serverKeyPair, [1, 2, 3, 4, 5] as byte[])
-        println inputStream.readLines()
+        def conn = communication.send(new URL("http://localhost:8080/demo"), serverKeyPair, [1, 2, 3, 4, 5] as byte[])
+        def inputStream = conn.getInputStream()
+
+        def baos = new ByteArrayOutputStream()
+        int readLen
+        def buf2 = new byte[1024]
+        while ((readLen = inputStream.read(buf2)) != -1) {
+            baos.write(buf2, 0, readLen)
+        }
         inputStream.close()
+
+        def resolved = communication.resolve(new ByteArrayInputStream(baos.toByteArray()))
+
+        println new String(resolved.data)
     }
 }

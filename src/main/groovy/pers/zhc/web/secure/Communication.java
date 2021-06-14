@@ -47,17 +47,17 @@ public class Communication {
      * @param url             target
      * @param targetPublicKey target public key
      * @param data            data
-     * @return the result input stream; need to be closed
+     * @return connection
      * @throws IOException IOException
      */
-    public InputStream send(URL url, Key targetPublicKey, byte[] data) throws IOException {
+    public URLConnection send(URL url, Key targetPublicKey, byte[] data) throws IOException {
         final URLConnection connection = url.openConnection();
         connection.setDoOutput(true);
         final OutputStream os = connection.getOutputStream();
         writePackedDate(targetPublicKey, os, data);
         os.close();
 
-        return connection.getInputStream();
+        return connection;
     }
 
     /**
@@ -134,6 +134,16 @@ public class Communication {
         }
     }
 
+    public static class Resolved {
+        public PublicKey publicKey;
+        public byte[] data;
+
+        public Resolved(PublicKey publicKey, byte[] data) {
+            this.publicKey = publicKey;
+            this.data = data;
+        }
+    }
+
     /**
      * Resolve packed data
      *
@@ -142,7 +152,7 @@ public class Communication {
      * @throws ResolveException failed to resolve
      */
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    public byte[] resolve(InputStream in) throws ResolveException, IOException {
+    public Resolved resolve(InputStream in) throws ResolveException, IOException {
         final byte[] lengthBuf = new byte[4];
         final byte[] byte8Buf = new byte[8];
 
@@ -203,7 +213,8 @@ public class Communication {
         } catch (NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
             throw new ResolveException(e);
         }
-        return message;
+
+        return new Resolved(pubKey, message);
     }
 
     /**
