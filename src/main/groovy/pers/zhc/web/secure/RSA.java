@@ -1,8 +1,10 @@
-package pers.zhc.web.utils;
+package pers.zhc.web.secure;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 
 /**
  * @author bczhc
@@ -65,5 +67,13 @@ public class RSA {
 
     public PrivateKey getPrivateKey() {
         return keyPair.getPrivate();
+    }
+
+    public static PublicKey fromEncodedPublic(byte[] encoded) throws InvalidKeySpecException {
+        try {
+            return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(encoded));
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

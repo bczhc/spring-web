@@ -1,42 +1,32 @@
 package pers.zhc.web
 
-import pers.zhc.tools.jni.JNI
 
-import javax.crypto.Cipher
-import java.security.KeyFactory
-import java.security.MessageDigest
-import java.security.spec.X509EncodedKeySpec
+import pers.zhc.web.secure.Communication
+import pers.zhc.web.secure.RSA
 
 /**
  * @author bczhc
  */
 class Demo {
     static void main(String[] args) {
-        // get server's public key and verify
-
         def url = new URL("http://localhost:8080/public-key")
         def connection = url.openConnection()
         def length = connection.getContentLength()
 
-        def lengthBuf = new byte[4]
-        def is = connection.getInputStream()
-        is.read(lengthBuf)
-        def publicKeyLength = JNI.Struct.unpackInt(lengthBuf, 0, JNI.Struct.MODE_BIG_ENDIAN)
-        def publicKeyBuf = new byte[publicKeyLength]
-        is.read(publicKeyBuf)
-        def signatureBuf = new byte[length - 4 - publicKeyLength]
-        is.read(signatureBuf)
+        def buf = new byte[length]
+        def is = connection.inputStream
+        assert is.read(buf) == length
         is.close()
 
-        def digest = MessageDigest.getInstance("SHA-256").digest(publicKeyBuf)
+        def serverKeyPair = Communication.resolvePublicKeyResult(buf)
 
-        def cipher = Cipher.getInstance("RSA")
-        def generatePublic = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(publicKeyBuf))
 
-        cipher.init(Cipher.DECRYPT_MODE, generatePublic)
-        def decryptedSignature = cipher.doFinal(signatureBuf)
-        if (Arrays.equals(decryptedSignature, digest)) {
-            println "ok"
-        }
+        def myKeyPair = RSA.generateKeyPair()
+        def communication = new Communication(myKeyPair)
+
+
+        def inputStream = communication.send(new URL("http://localhost:8080/demo"), serverKeyPair, [1, 2, 3, 4, 5] as byte[])
+        println inputStream.readLines()
+        inputStream.close()
     }
 }

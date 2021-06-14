@@ -3,6 +3,7 @@ package pers.zhc.web.controller
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import pers.zhc.web.Global
 
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
@@ -17,15 +18,9 @@ class TestController {
     @RequestMapping("/demo")
     def hello() {
         def is = request.getInputStream()
-        def buf = new byte[1024]
-        def readLen
-        def totalLen = 0
-        while ((readLen = is.read(buf) != -1)) {
-            totalLen += readLen
-        }
-        return [
-                "msg"              : "Hallo du Lama!",
-                "inputStreamLength": totalLen
-        ]
+
+        def resolved = Global.communication.resolve(is)
+        println resolved.toString()
+        return resolved.toString()
     }
 }

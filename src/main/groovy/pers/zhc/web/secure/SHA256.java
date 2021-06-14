@@ -1,4 +1,6 @@
-package pers.zhc.web.utils;
+package pers.zhc.web.secure;
+
+import pers.zhc.web.Global;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

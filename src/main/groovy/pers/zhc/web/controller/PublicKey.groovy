@@ -4,8 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
 import pers.zhc.tools.jni.JNI
-import pers.zhc.web.ApplicationMain
-import pers.zhc.web.utils.MyCommunication
+import pers.zhc.web.Global
+import pers.zhc.web.secure.Communication
 
 import javax.servlet.http.HttpServletResponse
 
@@ -25,13 +25,13 @@ class PublicKey {
      */
     @GetMapping("/public-key")
     def publicKey() {
-        def publicKey = ApplicationMain.keyPair.getPublic().getEncoded()
+        def publicKey = Global.keyPair.getPublic().getEncoded()
         def length = publicKey.length
 
         def packedDest = new byte[4]
         JNI.Struct.packInt(length, packedDest, 0, JNI.Struct.MODE_BIG_ENDIAN)
 
-        def signature = MyCommunication.signData(publicKey)
+        def signature = Communication.signData(publicKey)
 
         def totalLength = packedDest.length + length + signature.length
 
