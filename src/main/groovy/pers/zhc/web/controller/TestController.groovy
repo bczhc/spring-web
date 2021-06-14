@@ -36,7 +36,7 @@ class TestController {
         def r = "received: ${new String(resolved.data)}"
 
         def outputStream = response.getOutputStream()
-        def length = Global.communication.writePackedDate(resolved.publicKey, outputStream, r.getBytes(StandardCharsets.UTF_8))
+        def length = Global.communication.writePackedData(resolved.publicKey, outputStream, r.getBytes(StandardCharsets.UTF_8))
         response.setContentLengthLong(length)
         outputStream.close()
     }

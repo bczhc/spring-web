@@ -2,6 +2,7 @@ package pers.zhc.web.secure;
 
 import pers.zhc.tools.jni.JNI;
 import pers.zhc.web.Global;
+import pers.zhc.web.IOUtils;
 
 import javax.crypto.*;
 import java.io.ByteArrayInputStream;
@@ -16,10 +17,21 @@ import java.util.Arrays;
 
 /**
  * @author bczhc
- * struct:
+ * Bilateral communication data structure:
  * ____________________________________________________________________________________________________________________________________________________________________________________________________________________________________
- * | MagicNumber (8) | SenderPublicKeyLength (4) | SenderPublicKey | MsgDigest (32) | MsgDigestSignatureLength (4) | MsgDigestSignature | MsgKeyCiphertextLength (4) | MsgKeyCiphertext | MessageCiphertextLength | MessageCiphertext |
+ * | MagicNumber (8) | Type (1) | SenderPublicKeyLength (4) | SenderPublicKey | MsgDigest (32) | MsgDigestSignatureLength (4) | MsgDigestSignature | MsgKeyCiphertextLength (4) | MsgKeyCiphertext | MessageCiphertextLength | MessageCiphertext |
  * ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ * <p>
+ * Unilateral communication data structure:
+ * ___________________________________________________________________________________________________________________________________________________________
+ * | MagicNumber (8) | Type (1) | SenderPublicKeyLength (4) | SenderPublicKey | MsgDigest (32) | MsgDigestSignatureLength (4) | MsgDigestSignature | Message |
+ * -----------------------------------------------------------------------------------------------------------------------------------------------------------
+ * <p>
+ * Type:
+ * Bilateral 0
+ * Unilateral 1
+ * <p>
+ * TODO: figure out `read` issue
  */
 public class Communication {
     private final SHA256 sha256;
@@ -28,6 +40,11 @@ public class Communication {
     private final KeyPair senderKeyPair;
 
     private static final byte[] magicNumber = new byte[]{'b', 'c', 'z', 'h', 'c', 0, 0, 0};
+    private static final byte TYPE_BILATERAL = 0;
+    private static final byte TYPE_UNILATERAL = 1;
+
+    private final byte[] bilateralTypeData = new byte[]{TYPE_BILATERAL};
+    private final byte[] unilateralTypeData = new byte[]{TYPE_UNILATERAL};
 
     public Communication(KeyPair senderKeyPair) {
         this.sha256 = new SHA256();
@@ -54,14 +71,14 @@ public class Communication {
         final URLConnection connection = url.openConnection();
         connection.setDoOutput(true);
         final OutputStream os = connection.getOutputStream();
-        writePackedDate(targetPublicKey, os, data);
+        writePackedData(targetPublicKey, os, data);
         os.close();
 
         return connection;
     }
 
     /**
-     * Write packed data to an output stream
+     * Write packed data to an output stream for unilateral communication
      *
      * @param targetPublicKey target public key
      * @param to              target output stream
@@ -69,40 +86,10 @@ public class Communication {
      * @return total length of the packed data
      */
     @SuppressWarnings("DuplicatedCode")
-    public long writePackedDate(Key targetPublicKey, OutputStream to, byte[] data) {
+    public long writePackedData(Key targetPublicKey, OutputStream to, byte[] data) {
         try {
-            long length = 0;
+            long length = packSignature(to, data, TYPE_BILATERAL);
             final byte[] lengthBuf = new byte[4];
-
-            // MagicNumber
-            to.write(magicNumber);
-            length += magicNumber.length;
-
-            final byte[] senderPubKeyBuf = senderKeyPair.getPublic().getEncoded();
-            final int senderKeyPairLength = senderPubKeyBuf.length;
-
-            JNI.Struct.packInt(senderKeyPairLength, lengthBuf, 0, JNI.Struct.MODE_BIG_ENDIAN);
-            // SenderPublicKeyLength
-            to.write(lengthBuf);
-            length += lengthBuf.length;
-            // SenderPublicKey
-            to.write(senderPubKeyBuf);
-            length += senderPubKeyBuf.length;
-
-            final byte[] digest = sha256.digest(data);
-            // MsgDigest
-            to.write(digest);
-            length += digest.length;
-
-            final byte[] digestSignature = rsa.getPrkEncryptCipher().doFinal(digest);
-            final int digestSignatureLength = digestSignature.length;
-            JNI.Struct.packInt(digestSignatureLength, lengthBuf, 0, JNI.Struct.MODE_BIG_ENDIAN);
-            // MsgDigestSignatureLength
-            to.write(lengthBuf);
-            length += lengthBuf.length;
-            // MsgDigestSignature
-            to.write(digestSignature);
-            length += digestSignature.length;
 
             final SecretKey aesKey = aesKeyGenerator.generateKey();
             final byte[] aesKeyByte = aesKey.getEncoded();
@@ -134,6 +121,71 @@ public class Communication {
         }
     }
 
+    /**
+     * Write packed data to an output stream for unilateral communication
+     *
+     * @param to   target output stream
+     * @param data data to be packed
+     * @return total length of the packed data
+     * <p>
+     * TODO `InputStream` instead `byte[]` (also reversed)
+     */
+    public long writePackedData(OutputStream to, byte[] data) {
+        try {
+            long length = packSignature(to, data, TYPE_UNILATERAL);
+
+            // Message
+            to.write(data);
+            length += data.length;
+
+            return length;
+        } catch (IOException | IllegalBlockSizeException | BadPaddingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @SuppressWarnings("DuplicatedCode")
+    private long packSignature(OutputStream to, byte[] data, byte type) throws IOException, IllegalBlockSizeException, BadPaddingException {
+        long length = 0;
+        final byte[] lengthBuf = new byte[4];
+
+        // MagicNumber
+        to.write(magicNumber);
+        length += magicNumber.length;
+
+        // Type
+        final byte[] typeData = type == TYPE_BILATERAL ? bilateralTypeData : unilateralTypeData;
+        to.write(typeData);
+        length += typeData.length;
+
+        final byte[] senderPubKeyBuf = senderKeyPair.getPublic().getEncoded();
+        final int senderKeyPairLength = senderPubKeyBuf.length;
+
+        JNI.Struct.packInt(senderKeyPairLength, lengthBuf, 0, JNI.Struct.MODE_BIG_ENDIAN);
+        // SenderPublicKeyLength
+        to.write(lengthBuf);
+        length += lengthBuf.length;
+        // SenderPublicKey
+        to.write(senderPubKeyBuf);
+        length += senderPubKeyBuf.length;
+
+        final byte[] digest = sha256.digest(data);
+        // MsgDigest
+        to.write(digest);
+        length += digest.length;
+
+        final byte[] digestSignature = rsa.getPrkEncryptCipher().doFinal(digest);
+        final int digestSignatureLength = digestSignature.length;
+        JNI.Struct.packInt(digestSignatureLength, lengthBuf, 0, JNI.Struct.MODE_BIG_ENDIAN);
+        // MsgDigestSignatureLength
+        to.write(lengthBuf);
+        length += lengthBuf.length;
+        // MsgDigestSignature
+        to.write(digestSignature);
+        length += digestSignature.length;
+        return length;
+    }
+
     public static class Resolved {
         public PublicKey publicKey;
         public byte[] data;
@@ -154,7 +206,40 @@ public class Communication {
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public Resolved resolve(InputStream in) throws ResolveException, IOException {
         final byte[] lengthBuf = new byte[4];
-        final byte[] byte8Buf = new byte[8];
+
+        final PublicKey pubKey = resolveSignature(in);
+
+        in.read(lengthBuf);
+        final int aesKeyCiphertextLength = JNI.Struct.unpackInt(lengthBuf, 0, JNI.Struct.MODE_BIG_ENDIAN);
+        final byte[] aesKeyCiphertextBuf = new byte[aesKeyCiphertextLength];
+        in.read(aesKeyCiphertextBuf);
+        final byte[] aesKeyBuf;
+        try {
+            aesKeyBuf = rsa.getPrkDecryptCipher().doFinal(aesKeyCiphertextBuf);
+        } catch (IllegalBlockSizeException | BadPaddingException e) {
+            throw new ResolveException(e);
+        }
+        final SecretKey aesKey = AES.fromEncodedKey(aesKeyBuf);
+
+        in.read(lengthBuf);
+        final int messageCiphertextLength = JNI.Struct.unpackInt(lengthBuf, 0, JNI.Struct.MODE_BIG_ENDIAN);
+
+        final byte[] messageCiphertext = new byte[messageCiphertextLength];
+        in.read(messageCiphertext);
+        final byte[] message;
+        try {
+            message = AES.decrypt(aesKey, messageCiphertext);
+        } catch (NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
+            throw new ResolveException(e);
+        }
+
+        return new Resolved(pubKey, message);
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private static PublicKey resolveSignature(InputStream in) throws IOException, ResolveException {
+        byte[] lengthBuf = new byte[4];
+        byte[] byte8Buf = new byte[8];
 
         in.read(byte8Buf);
         if (!Arrays.equals(byte8Buf, magicNumber)) {
@@ -189,32 +274,14 @@ public class Communication {
         if (!Arrays.equals(digest, signatureDecrypted)) {
             throw new ResolveException("Authorization failed");
         }
+        return pubKey;
+    }
 
-        in.read(lengthBuf);
-        final int aesKeyCiphertextLength = JNI.Struct.unpackInt(lengthBuf, 0, JNI.Struct.MODE_BIG_ENDIAN);
-        final byte[] aesKeyCiphertextBuf = new byte[aesKeyCiphertextLength];
-        in.read(aesKeyCiphertextBuf);
-        final byte[] aesKeyBuf;
-        try {
-            aesKeyBuf = rsa.getPrkDecryptCipher().doFinal(aesKeyCiphertextBuf);
-        } catch (IllegalBlockSizeException | BadPaddingException e) {
-            throw new ResolveException(e);
-        }
-        final SecretKey aesKey = AES.fromEncodedKey(aesKeyBuf);
+    public static Resolved resolveUnilateral(InputStream in) throws ResolveException, IOException {
+        final PublicKey publicKey = resolveSignature(in);
 
-        in.read(lengthBuf);
-        final int messageCiphertextLength = JNI.Struct.unpackInt(lengthBuf, 0, JNI.Struct.MODE_BIG_ENDIAN);
-
-        final byte[] messageCiphertext = new byte[messageCiphertextLength];
-        in.read(messageCiphertext);
-        final byte[] message;
-        try {
-            message = AES.decrypt(aesKey, messageCiphertext);
-        } catch (NoSuchPaddingException | InvalidKeyException | IllegalBlockSizeException | BadPaddingException e) {
-            throw new ResolveException(e);
-        }
-
-        return new Resolved(pubKey, message);
+        final byte[] data = IOUtils.streamToByteArray(in);
+        return new Resolved(publicKey, data);
     }
 
     /**
