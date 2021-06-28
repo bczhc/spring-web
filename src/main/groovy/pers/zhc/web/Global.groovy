@@ -15,5 +15,5 @@ class Global {
     public static RSA rsa
     public static Communication communication
 
-    public static final String LIB_PATH = "./libbczhc.so"
+    public static String LIB_PATH = "./libbczhc.so"
 }
