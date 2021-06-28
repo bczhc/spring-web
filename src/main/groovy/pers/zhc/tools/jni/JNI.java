@@ -3,11 +3,33 @@ package pers.zhc.tools.jni;
 
 import pers.zhc.web.Global;
 
+import java.io.File;
+import java.io.IOException;
+
 /**
  * @author bczhc
  */
 public class JNI {
+    private static boolean hasLoadedLib = false;
+
+    private synchronized static void loadLib() {
+        if (!hasLoadedLib) {
+            final File libFile = new File(Global.LIB_PATH);
+            try {
+                System.load(libFile.getCanonicalPath());
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+            hasLoadedLib = true;
+        }
+    }
+
     public static class Sqlite3 {
+        static {
+            loadLib();
+        }
+
         /**
          * Open sqlite database.
          *
@@ -49,6 +71,10 @@ public class JNI {
         public static native long compileStatement(long id, String sql) throws RuntimeException;
 
         public static class Statement {
+            static {
+                loadLib();
+            }
+
             /* Statement methods start: */
             public static native void bind(long stmtId, int row, int a) throws RuntimeException;
 
@@ -94,6 +120,10 @@ public class JNI {
         }
 
         public static class Cursor {
+            static {
+                loadLib();
+            }
+
             /* Cursor methods start. */
             public static native void reset(long cursorId) throws RuntimeException;
 
@@ -125,6 +155,10 @@ public class JNI {
     }
 
     public static class Struct {
+        static {
+            loadLib();
+        }
+
         public static final int MODE_BIG_ENDIAN = 0;
         public static final int MODE_LITTLE_ENDIAN = 1;
 

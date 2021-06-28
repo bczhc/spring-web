@@ -2,6 +2,7 @@ package pers.zhc.web
 
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
+import pers.zhc.tools.jni.JNI
 import pers.zhc.web.secure.Communication
 import pers.zhc.web.secure.RSA
 import pers.zhc.web.secure.SHA256
@@ -31,8 +32,6 @@ class ApplicationMain {
         if (!libFile.exists()) {
             System.err.println("Cannot find \"${Global.LIB_PATH}\"")
             System.exit(1)
-        } else {
-            System.load(libFile.getAbsolutePath())
         }
     }
 }
