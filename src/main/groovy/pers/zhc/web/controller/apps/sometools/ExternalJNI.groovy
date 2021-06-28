@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController
 import pers.zhc.web.Global
 import pers.zhc.web.IOUtils
 
+import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
 /**
@@ -16,6 +17,8 @@ import javax.servlet.http.HttpServletResponse
 class ExternalJNI {
     @Autowired
     private HttpServletResponse response
+    @Autowired
+    private HttpServletRequest request
 
     private static def ABI = [
             "arm64-v8a",
@@ -30,8 +33,8 @@ class ExternalJNI {
      * @return
      */
     @RequestMapping("/some-tools-app/external-jni")
-    def request(@RequestParam(name = "abi", defaultValue = null) String abi) {
-        if (abi == null) {
+    def request(@RequestParam(name = "abi", defaultValue = "Unknown") String abi) {
+        if (abi == "Unknown") {
             return [
                     "status" : 1,
                     "message": "Missing abi parameter"

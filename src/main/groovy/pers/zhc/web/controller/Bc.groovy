@@ -16,7 +16,7 @@ class Bc {
     private HttpServletResponse response
 
     @GetMapping("/bc")
-    def bc(@RequestParam(name = "expression", defaultValue = "") String expression) {
+    def bc(@RequestParam(name = "expression", defaultValue = "0") String expression) {
         response.setHeader("Access-Control-Allow-Origin", "*")
 
         def runtime = Runtime.getRuntime()

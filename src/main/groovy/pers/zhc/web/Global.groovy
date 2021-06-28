@@ -14,4 +14,6 @@ class Global {
     public static SHA256 sha256
     public static RSA rsa
     public static Communication communication
+
+    public static final String LIB_PATH = "./libbczhc.so"
 }

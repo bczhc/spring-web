@@ -18,9 +18,21 @@ class ApplicationMain {
     }
 
     private static init() {
+        loadLib()
+
         Global.keyPair = RSA.generateKeyPair()
         Global.sha256 = new SHA256()
         Global.rsa = new RSA(Global.keyPair)
         Global.communication = new Communication(Global.keyPair)
+    }
+
+    private static loadLib() {
+        final File libFile = new File(Global.LIB_PATH)
+        if (!libFile.exists()) {
+            System.err.println("Cannot find \"${Global.LIB_PATH}\"")
+            System.exit(1)
+        } else {
+            System.load(libFile.getAbsolutePath())
+        }
     }
 }
