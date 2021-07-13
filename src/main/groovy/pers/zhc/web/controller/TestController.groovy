@@ -1,45 +1,80 @@
 package pers.zhc.web.controller
 
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.web.bind.annotation.GetMapping
+
+import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import pers.zhc.web.Global
-import pers.zhc.web.secure.ResolveException
-
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
-import java.nio.charset.StandardCharsets
 
 @RestController
 class TestController {
-    @Autowired
-    private HttpServletRequest request
-    @Autowired
-    private HttpServletResponse response
 
-    @RequestMapping("/demo")
-    def hello() {
-        println response
-        def is = request.getInputStream()
-
-        def resolved
-        try {
-            resolved = Global.communication.resolve(is)
-            is.close()
-        } catch (ResolveException e) {
-            e.printStackTrace()
-            response.outputStream.println("Failed to resolve")
-            response.outputStream.println(e.toString())
-            return
+    @PostMapping("/login")
+    def login(
+            @RequestParam(name = "username", defaultValue = "") String username,
+            @RequestParam(name = "password", defaultValue = "") String password
+    ) {
+        def verify = verify(username, password)
+        if (!verify) {
+            return [
+                    "status": 1,
+                    "msg:"  : "Failed to verify"
+            ]
         }
 
-        def r = "received: ${new String(resolved.data)}"
+        def random = Math.random().toString()
 
-        def outputStream = response.getOutputStream()
-        def length = Global.communication.writePackedData(resolved.publicKey, outputStream, r.getBytes(StandardCharsets.UTF_8))
-        response.setContentLengthLong(length)
-        outputStream.close()
+        def digest = Global.sha256.digest(random.getBytes())
+        def signature = Global.rsa.prkEncryptCipher.doFinal(digest)
+
+        return [
+                "status"   : 0,
+                "msg"      : "Verifying succeeded",
+                "signature": signature
+        ]
+    }
+
+    @RequestMapping("request")
+    def request(@RequestParam(name = "token", defaultValue = "") String token) {
+        if (token.isEmpty()) {
+            return [
+                    "status": 1,
+                    "msg"   : "Empty token"
+            ]
+        }
+
+        def tokenData
+        try {
+            tokenData = token.decodeBase64()
+        } catch (e) {
+            return [
+                    "status"   : 2,
+                    "msg"      : "Failed to decode Base64",
+                    "exception": e
+            ]
+        }
+
+
+        def decodedToken
+        try {
+            decodedToken = Global.rsa.getPukDecryptCipher().doFinal(tokenData)
+        } catch (e) {
+            return [
+                    "status"   : 3,
+                    "msg"      : "Invalid token",
+                    "exception": e
+            ]
+        }
+
+        return [
+                "status"      : 0,
+                "msg"         : "Authentication succeeded",
+                "randomDigest": decodedToken
+        ]
+    }
+
+    private static boolean verify(String username, String password) {
+        return username == "bczhc" && password == "123"
     }
 }
