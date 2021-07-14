@@ -1,6 +1,8 @@
 /*翟灿hhh*/
 package pers.zhc.tools.jni;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import pers.zhc.web.Global;
 
 import java.io.File;
@@ -11,15 +13,13 @@ import java.io.IOException;
  */
 public class JNI {
     private static boolean hasLoadedLib = false;
+    private static final Logger logger = LoggerFactory.getLogger(JNI.class);
 
     private synchronized static void loadLib() {
         if (!hasLoadedLib) {
-            final File libFile = new File(Global.LIB_PATH);
-            try {
-                System.load(libFile.getCanonicalPath());
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.exit(1);
+            for (String libPath : Global.libPaths) {
+                System.load(libPath);
+                logger.info("Load dynamic library: " + libPath);
             }
             hasLoadedLib = true;
         }

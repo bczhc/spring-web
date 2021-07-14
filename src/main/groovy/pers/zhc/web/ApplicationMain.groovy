@@ -1,5 +1,6 @@
 package pers.zhc.web
 
+import org.slf4j.LoggerFactory
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import pers.zhc.web.secure.Communication
@@ -36,7 +37,7 @@ class ApplicationMain {
         is.close()
 
         def propertiesKeys = [
-                "libPath"       : "server.lib.path",
+                "libsDir"       : "server.libs.dir",
                 "privateKeyPath": "server.privateKey.path"
         ]
 
@@ -46,15 +47,12 @@ class ApplicationMain {
             }
         }
 
-        def libPath = properties.get(propertiesKeys.libPath) as String
+        def libsDir = properties.get(propertiesKeys.libsDir) as String
         def privateKeyPath = properties.get(propertiesKeys.privateKeyPath) as String
 
-        def libFile = new File(libPath)
+        loadLibs(libsDir)
+
         def privateKeyFile = new File(privateKeyPath)
-
-        Global.LIB_PATH = libFile
-        checkLib()
-
         def privateKeyEncoded = privateKeyFile.readBytes()
         def keyPair = RSA.fromPrivateKey(RSA.fromEncodedPrivate(privateKeyEncoded))
         checkKeyPair(keyPair)
@@ -65,12 +63,18 @@ class ApplicationMain {
         Global.communication = new Communication(Global.keyPair)
     }
 
-    private static checkLib() {
-        final File libFile = new File(Global.LIB_PATH)
-        if (!libFile.exists()) {
-            System.err.println("Cannot find \"${Global.LIB_PATH}\"")
-            System.exit(1)
+    private static loadLibs(String libsDir) {
+        def libPaths = []
+        // TODO loadLibs, not using hardcoding
+        [
+                "libmagic.so",
+                "libmyLib.so",
+                "libMain.so"
+        ].forEach {
+            def libFile = new File(libsDir, it)
+            libPaths.add(libFile.getAbsolutePath())
         }
+        Global.libPaths = libPaths
     }
 
     static checkKeyPair(KeyPair keyPair) {
