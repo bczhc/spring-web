@@ -15,6 +15,7 @@ import java.security.KeyPair
 class ApplicationMain {
     static void main(String[] args) {
         println "hello, world"
+
         try {
             init(args)
         } catch (e) {
@@ -29,15 +30,21 @@ class ApplicationMain {
 
     private static init(String[] args) {
         def privateKeyFile = new File("server-java-private")
-        if (!privateKeyFile.exists()) {
-            privateKeyFile = null
-            println "\"./server-java-private\" not found"
-        }
-
         def libFile = new File("libbczhc.so")
-        if (!libFile.exists()) {
-            libFile = null
-            println "\"./libbczhc.so\" not found"
+
+        if (args.length == 2) {
+            libFile = new File(args[0])
+            privateKeyFile = new File(args[1])
+        } else {
+            if (!privateKeyFile.exists()) {
+                privateKeyFile = null
+                println "\"./server-java-private\" not found"
+            }
+
+            if (!libFile.exists()) {
+                libFile = null
+                println "\"./libbczhc.so\" not found"
+            }
         }
 
         if ((args.length >= 1 && (args[0] == "-h" || args[0] == "--help")) || (privateKeyFile == null || libFile == null)) {
