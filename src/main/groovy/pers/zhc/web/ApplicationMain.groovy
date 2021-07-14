@@ -17,40 +17,40 @@ class ApplicationMain {
         println "hello, world"
 
         try {
-            init(args)
+            init()
         } catch (e) {
-            if (e instanceof IllegalArgumentException) {
-                return
-            } else {
-                e.printStackTrace()
-            }
+            e.printStackTrace()
+            return
         }
         SpringApplication.run(ApplicationMain, args)
     }
 
-    private static init(String[] args) {
-        def privateKeyFile = new File("server-java-private")
-        def libFile = new File("libbczhc.so")
+    private static init() {
+        def propertiesFile = new File("./server.properties")
+        if (!propertiesFile.exists()) {
+            assert propertiesFile.createNewFile()
+        }
+        def is = new FileInputStream(propertiesFile)
+        def properties = new Properties()
+        properties.load(is)
+        is.close()
 
-        if (args.length == 2) {
-            libFile = new File(args[0])
-            privateKeyFile = new File(args[1])
-        } else {
-            if (!privateKeyFile.exists()) {
-                privateKeyFile = null
-                println "\"./server-java-private\" not found"
-            }
+        def propertiesKeys = [
+                "libPath"       : "server.lib.path",
+                "privateKeyPath": "server.privateKey.path"
+        ]
 
-            if (!libFile.exists()) {
-                libFile = null
-                println "\"./libbczhc.so\" not found"
+        propertiesKeys.forEach { k, v ->
+            if (properties.get(v) == null) {
+                throw new MissingPropertyException("Missing property $v, please define it in server.properties.")
             }
         }
 
-        if ((args.length >= 1 && (args[0] == "-h" || args[0] == "--help")) || (privateKeyFile == null || libFile == null)) {
-            System.err.println("Usage: command <lib-path> <private-key>")
-            throw new IllegalArgumentException()
-        }
+        def libPath = properties.get(propertiesKeys.libPath) as String
+        def privateKeyPath = properties.get(propertiesKeys.privateKeyPath) as String
+
+        def libFile = new File(libPath)
+        def privateKeyFile = new File(privateKeyPath)
 
         Global.LIB_PATH = libFile
         checkLib()
