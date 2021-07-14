@@ -20,6 +20,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation group: 'org.json', name: 'json', version: '20210307'
     implementation 'org.jetbrains:annotations:20.1.0'
+    implementation 'com.auth0:java-jwt:3.18.1'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 }

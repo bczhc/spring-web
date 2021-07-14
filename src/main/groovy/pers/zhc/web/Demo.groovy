@@ -1,43 +1,64 @@
 package pers.zhc.web
 
-
-import pers.zhc.web.secure.Communication
-import pers.zhc.web.secure.RSA
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
+import com.auth0.jwt.interfaces.DecodedJWT
+import org.json.JSONObject
 
 /**
  * @author bczhc
  */
 class Demo {
+    static {
+        Global.init()
+    }
+
+    static def headMap = [
+            "alg": "HS256",
+            "typ": "JWT"
+    ]
+    static String headJSON = new JSONObject(headMap).toString()
+
     static void main(String[] args) {
-        def url = new URL("http://localhost:8080/public-key")
-        def connection = url.openConnection()
-        def length = connection.getContentLength()
+        login("bczhc", "123")
+    }
 
-        def buf = new byte[length]
-        def is = connection.inputStream
-        is.read(buf) == length
-        is.close()
+    static void login(String username, String password) {
+        def secret = "hello".bytes
 
-        def serverKeyPair = Communication.resolvePublicKeyResult(buf)
+        if (username == "bczhc" && password == "123") {
+            def payload = [
+                    "username": username
+            ]
+            def payloadJSON = new JSONObject(payload).toString()
 
+            def hmac256 = Algorithm.HMAC256(secret)
 
-        def myKeyPair = RSA.generateKeyPair()
-        def communication = new Communication(myKeyPair)
+            def headJsonBase64 = Global.base64.urlEncoder.encode(headJSON.bytes)
+            def payloadJsonBase64 = Global.base64.urlEncoder.encode(payloadJSON.bytes)
+            def signature = hmac256.sign(headJsonBase64, payloadJsonBase64)
 
+            def token = JWT.create()
+                    .withHeader(headMap)
+                    .withPayload(payload)
+                    .sign(Algorithm.HMAC256(secret))
 
-        def conn = communication.send(new URL("http://localhost:8080/demo"), serverKeyPair, [1, 2, 3, 4, 5] as byte[])
-        def inputStream = conn.getInputStream()
+            println([
+                    Global.base64.urlEncoder.encodeToString(signature),
+                    token
+            ])
 
-        def baos = new ByteArrayOutputStream()
-        int readLen
-        def buf2 = new byte[1024]
-        while ((readLen = inputStream.read(buf2)) != -1) {
-            baos.write(buf2, 0, readLen)
+            authenticate("token")
         }
-        inputStream.close()
+    }
 
-        def resolved = communication.resolve(new ByteArrayInputStream(baos.toByteArray()))
-
-        println new String(resolved.data)
+    static authenticate(String token) {
+        try {
+            def verifier = JWT.require(Algorithm.HMAC256("hello".bytes))
+                    .build()
+            def decodedJWT = verifier.verify(token)
+        } catch (e) {
+            e.printStackTrace()
+        }
     }
 }
