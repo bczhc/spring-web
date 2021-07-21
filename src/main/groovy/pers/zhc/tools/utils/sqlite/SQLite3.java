@@ -30,6 +30,10 @@ public class SQLite3 {
     }
 
     public void close() {
+        if (isClosed) {
+            throw new RuntimeException("Already closed");
+        }
+
         JNI.Sqlite3.close(this.id);
         isClosed = true;
     }
@@ -46,6 +50,12 @@ public class SQLite3 {
 
     public void exec(String cmd) {
         exec(cmd, null);
+    }
+
+    public void execBind(String cmd, Object[] binds) {
+        final Statement statement = compileStatement(cmd, binds);
+        statement.step();
+        statement.release();
     }
 
     public boolean isClosed() {
@@ -65,29 +75,25 @@ public class SQLite3 {
         return r.get();
     }
 
-    public boolean hasRecord(String selectSql) {
-        int[] c = {0};
-        try {
-            this.exec(selectSql, contents -> {
-                ++c[0];
-                return 1;
-            });
-        } catch (Exception ignored) {
-            // terminate exception
-        }
-        return c[0] != 0;
-    }
-
     /**
      * Get if a record is exist.
      *
-     * @param statement <p>select SQLite statement, note it must select `count()`</p>
-     *                  <p>E.g.: SELECT COUNT() FROM table_xxx WHERE blah blah</p>
+     * @param selectSql <p>SQLite select statement</p>
      * @return existence boolean
      */
-    public boolean hasRecord(@NotNull Statement statement) {
-        statement.stepRow();
-        return statement.getCursor().getLong(0) != 0;
+    public boolean hasRecord(String selectSql, Object[] binds) {
+        final Statement statement = compileStatement(selectSql);
+        if (binds != null) {
+            statement.bind(binds);
+        }
+        final int stepRow = statement.stepRow();
+        statement.release();
+
+        return stepRow == SQLITE_ROW;
+    }
+
+    public boolean hasRecord(String selectSql) {
+        return hasRecord(selectSql, null);
     }
 
     public boolean checkIfCorrupt() {
@@ -116,5 +122,17 @@ public class SQLite3 {
 
     public void commit() {
         this.exec("COMMIT ");
+    }
+
+    public int getRecordCount(String table) {
+        final Statement statement = compileStatement("SELECT COUNT() FROM " + table);
+        final Cursor cursor = statement.getCursor();
+        if (!cursor.step()) {
+            throw new AssertionError();
+        }
+        final int count = cursor.getInt(0);
+        statement.release();
+
+        return count;
     }
 }

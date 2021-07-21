@@ -4,6 +4,7 @@ import pers.zhc.web.secure.Communication
 import pers.zhc.web.secure.RSA
 import pers.zhc.web.secure.SHA256
 import pers.zhc.web.utils.Base64
+import pers.zhc.web.utils.SHA1
 
 import java.security.KeyPair
 
@@ -16,6 +17,7 @@ class Global {
     public static RSA rsa
     public static Communication communication
     public static Base64 base64
+    public static SHA1 sha1
 
     public static String[] libPaths
 
@@ -54,6 +56,7 @@ class Global {
         sha256 = new SHA256()
         rsa = new RSA(Global.keyPair)
         communication = new Communication(Global.keyPair)
+        sha1 = new SHA1()
 
         base64 = new Base64()
     }

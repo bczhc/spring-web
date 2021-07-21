@@ -122,6 +122,8 @@ public class Statement {
                 bind(index, (Integer) bind);
             } else if (bind instanceof Long) {
                 bind(index, (Long) bind);
+            } else if (bind instanceof Float) {
+                bind(index, ((Float) bind).doubleValue());
             } else if (bind instanceof Double) {
                 bind(index, (Double) bind);
             } else if (bind instanceof String) {
