@@ -1,5 +1,6 @@
 package pers.zhc.web
 
+import pers.zhc.jni.JNI
 import pers.zhc.web.secure.Communication
 import pers.zhc.web.secure.RSA
 import pers.zhc.web.secure.SHA256
@@ -19,8 +20,6 @@ class Global {
     public static Base64 base64
     public static SHA1 sha1
 
-    public static String[] libPaths
-
     static init() throws Exception {
         def propertiesFile = new File("./server.properties")
         if (!propertiesFile.exists()) {
@@ -32,7 +31,7 @@ class Global {
         is.close()
 
         def propertiesKeys = [
-                "libsDir"       : "server.libs.dir",
+                "libPath"       : "server.lib.path",
                 "privateKeyPath": "server.privateKey.path"
         ]
 
@@ -42,10 +41,10 @@ class Global {
             }
         }
 
-        def libsDir = properties.get(propertiesKeys.libsDir) as String
+        def libPath = properties.get(propertiesKeys.libPath) as String
         def privateKeyPath = properties.get(propertiesKeys.privateKeyPath) as String
 
-        loadLibs(libsDir)
+        JNILoader.load(libPath)
 
         def privateKeyFile = new File(privateKeyPath)
         def privateKeyEncoded = privateKeyFile.readBytes()
@@ -57,22 +56,16 @@ class Global {
         rsa = new RSA(Global.keyPair)
         communication = new Communication(Global.keyPair)
         sha1 = new SHA1()
-
         base64 = new Base64()
+
+        checkJNI()
     }
 
-    private static loadLibs(String libsDir) {
-        def libPaths = []
-        // TODO loadLibs, not using hardcoding
-        [
-                "libmagic.so",
-                "libmyLib.so",
-                "libMain.so"
-        ].forEach {
-            def libFile = new File(libsDir, it)
-            libPaths.add(libFile.getAbsolutePath())
-        }
-        Global.libPaths = libPaths
+    private static checkJNI() {
+        def n = 12345678
+        def b = new byte[4]
+        JNI.Struct.packInt(n, b, 0, JNI.Struct.MODE_BIG_ENDIAN)
+        assert n == JNI.Struct.unpackInt(b, 0, JNI.Struct.MODE_BIG_ENDIAN)
     }
 
     static checkKeyPair(KeyPair keyPair) {

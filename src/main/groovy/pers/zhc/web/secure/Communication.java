@@ -1,6 +1,6 @@
 package pers.zhc.web.secure;
 
-import pers.zhc.tools.jni.JNI;
+import pers.zhc.jni.JNI;
 import pers.zhc.web.Global;
 import pers.zhc.web.IOUtils;
 

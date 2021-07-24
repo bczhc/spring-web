@@ -4,7 +4,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import pers.zhc.tools.utils.sqlite.SQLite3
+import pers.zhc.jni.sqlite.SQLite3
 import pers.zhc.web.Global
 import pers.zhc.web.utils.Digest
 

@@ -13,6 +13,7 @@ targetCompatibility = JavaVersion.VERSION_1_8
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -21,6 +22,9 @@ dependencies {
     implementation group: 'org.json', name: 'json', version: '20210307'
     implementation 'org.jetbrains:annotations:20.1.0'
     implementation 'com.auth0:java-jwt:3.18.1'
+    implementation 'com.github.bczhc:java-lib:18a858c167'
+    implementation 'com.github.bczhc:jni-java:292ec4a849'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 }

@@ -3,7 +3,7 @@ package pers.zhc.web.controller
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
-import pers.zhc.tools.jni.JNI
+import pers.zhc.jni.JNI
 import pers.zhc.web.Global
 import pers.zhc.web.secure.Communication
 
