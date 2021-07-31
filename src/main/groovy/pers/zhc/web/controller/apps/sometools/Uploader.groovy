@@ -35,7 +35,7 @@ class Uploader {
             assert uploadDir.mkdir()
         }
 
-        filesDatabase = SQLite3.open(new File(uploadDir, "files.db").path)
+        filesDatabase = SQLite3.open("./files.db")
         initFilesDatabase()
     }
 
@@ -64,7 +64,7 @@ class Uploader {
 
     @RequestMapping("/some-tools-app/upload-list")
     synchronized def getList() {
-        logger.debug("getList()")
+        logger.info("getList()")
 
         def r = []
 
@@ -125,12 +125,17 @@ class Uploader {
             return msg
         }
 
+        def digestString = Digest.toHexString(digest)
+        if (checkLocalFileExistence(filename)) {
+            updateFileRecord(filename, digestString)
+        } else {
+            addFileRecord(filename, digestString)
+        }
         save(filename, fileBytes)
-        addFileRecord(filename, Digest.toHexString(digest))
 
         def fileInfo = [
                 "filename": filename,
-                "digest"  : Digest.toHexString(digest)
+                "digest"  : digestString
         ]
 
         return new ReturnMsg(0, "OK", fileInfo)
@@ -158,6 +163,14 @@ class Uploader {
 VALUES (?, ?, ?)""", [digest, filename, System.currentTimeMillis()] as Object[])
     }
 
+    def updateFileRecord(String filename, String digest) {
+        filesDatabase.execBind("""UPDATE "file"
+SET digest=?,
+    upload_time=?
+WHERE filename IS ?""", [digest, System.currentTimeMillis(), filename] as Object[])
+        logger.info("update: $filename")
+    }
+
     static def writeStream(InputStream is, OutputStream os) {
         int readLen
         def buf = new byte[4096]
@@ -165,5 +178,9 @@ VALUES (?, ?, ?)""", [digest, filename, System.currentTimeMillis()] as Object[])
             os.write(buf, 0, readLen)
             os.flush()
         }
+    }
+
+    private boolean checkLocalFileExistence(String filename) {
+        return new File(uploadDir, filename).exists()
     }
 }
