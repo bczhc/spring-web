@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import pers.zhc.jni.sqlite.SQLite3
+import pers.zhc.util.IOUtils
 import pers.zhc.web.Global
 import pers.zhc.web.utils.Digest
 
@@ -80,6 +81,16 @@ class Uploader {
         }
 
         return r
+    }
+
+    @RequestMapping("/some-tools-app/log")
+    def log() {
+        def inputStream = request.inputStream
+        def out = new ByteArrayOutputStream()
+        IOUtils.streamWrite(inputStream, out)
+        inputStream.close()
+        def read = out.toString()
+        logger.info("Received log: $read")
     }
 
     /**
